@@ -6,13 +6,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=owut
-PKG_SOURCE_DATE:=2025-07-11
+PKG_SOURCE_DATE:=2026-07-08
 PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_VERSION:=0d00192dbe0d7fcc50a67ddab62a593dbfd91295
+PKG_SOURCE_VERSION:=db17536ec5cbcc6a76a51e65f3d192b6a2184abb
 PKG_SOURCE_URL:=https://github.com/efahl/owut.git
-PKG_MIRROR_HASH:=3cbcdd9366312c3f543c42b37eba30041560a3cbb76d0ef52c568a6417150e8a
+PKG_MIRROR_HASH:=363bc98f4650ece76bf3b01f04f8aa78c5e79d4e44029d832e5d700c8223af05
 
 PKG_MAINTAINER:=Eric Fahlgren <ericfahlgren@gmail.com>
 PKG_LICENSE:=GPL-2.0-only
@@ -23,12 +23,13 @@ define Package/owut
   SECTION:=utils
   CATEGORY:=Utilities
   TITLE:=owut - an OpenWrt Upgrade Tool
-  URL:=http://github.com/efahl/owut
+  URL:=https://github.com/efahl/owut
   DEPENDS:=+attendedsysupgrade-common \
     +rpcd-mod-file \
     +ucode +ucode-mod-fs +ucode-mod-ubus \
     +ucode-mod-uci +ucode-mod-uclient +ucode-mod-uloop
   PKGARCH:=all
+  DEFAULT:=y if (BUILDBOT && !SMALL_FLASH)
 endef
 
 define Package/owut/description

@@ -8,22 +8,22 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=python-hatchling
-PKG_VERSION:=1.18.0
-PKG_RELEASE:=1
+PKG_VERSION:=1.30.1
+PKG_RELEASE:=2
 
 PYPI_NAME:=hatchling
-PKG_HASH:=50e99c3110ce0afc3f7bdbadff1c71c17758e476731c27607940cfa6686489ca
+PKG_HASH:=eee4fd45357f72ebb3d7a42e5d72cfb5e29ed426d79e8836288926c4258d5f2e
 
 PKG_LICENSE:=MIT
 PKG_LICENSE_FILES:=LICENSE.txt
-PKG_MAINTAINER:=Jeffery To <jeffery.to@gmail.com>
+PKG_MAINTAINER:=Alexandru Ardelean <ardeleanalex@gmail.com>
 
 PKG_HOST_ONLY:=1
 HOST_BUILD_DEPENDS:= \
 	python3/host \
 	python-build/host \
+	python-setuptools/host \
 	python-installer/host \
-	python-editables/host \
 	python-packaging/host \
 	python-pathspec/host \
 	python-pluggy/host \
@@ -43,8 +43,7 @@ define Package/python3-hatchling
   URL:=https://hatch.pypa.io/latest/
   DEPENDS:= \
       +python3-light \
-      +python3-email \
-      +python3-editables \
+      +python3-urllib \
       +python3-packaging \
       +python3-pathspec \
       +python3-pluggy \

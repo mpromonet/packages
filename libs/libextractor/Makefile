@@ -6,7 +6,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=libextractor
-PKG_VERSION:=1.13
+PKG_VERSION:=1.14
 PKG_RELEASE:=1
 
 # ToDo:
@@ -14,11 +14,12 @@ PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=@GNU/$(PKG_NAME)
-PKG_HASH:=bb8f312c51d202572243f113c6b62d8210301ab30cbaee604f9837d878cdf755
+PKG_HASH:=1a3a55433fcafc4a32c64dc37b175458e35d6f4e9b8f9f4bf11b2c23cc6b4680
 
 PKG_LICENSE:=GPL-3.0-or-later
 PKG_LICENSE_FILES:=COPYING
 PKG_MAINTAINER:=Daniel Golle <daniel@makrotopia.org>
+PKG_CPE_ID:=cpe:/a:gnu:libextractor
 
 PKG_FIXUP:=autoreconf
 PKG_INSTALL:=1
@@ -61,6 +62,8 @@ CONFIGURE_ARGS += \
 	--disable-gsf \
 	--disable-rpath \
 	--with$(if $(CONFIG_PACKAGE_libextractor-plugin-gstreamer),,out)-gstreamer
+
+TARGET_CFLAGS += -D__GNU_LIBRARY__
 
 define Package/libextractor
 	SECTION:=libs

@@ -8,25 +8,26 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=strongswan
-PKG_VERSION:=6.0.2
-PKG_RELEASE:=3
+PKG_VERSION:=6.0.7
+PKG_RELEASE:=4
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=https://download.strongswan.org/ https://download2.strongswan.org/
-PKG_HASH:=b8bfc897b84001fd810a281918d6c9ce37503cae0f41b39c43d4aba0201277cf
-PKG_LICENSE:=GPL-2.0-or-later
+PKG_HASH:=e518e34e159514f4c6ba80d1f926cb151e0dd4e3a1d94213171234b8b9ae6f55
+
 PKG_MAINTAINER:=Philip Prindeville <philipp@redfish-solutions.com>, Noel Kuntze <noel.kuntze@thermi.consulting>
+PKG_LICENSE:=GPL-2.0-or-later
+PKG_LICENSE_FILES:=COPYING LICENSE
 PKG_CPE_ID:=cpe:/a:strongswan:strongswan
 
 PKG_MOD_AVAILABLE:= \
 	addrblock \
 	aes \
-	af-alg \
 	agent \
 	attr \
 	attr-sql \
 	blowfish \
-	ccm \
+	$(if $(CONFIG_STRONGSWAN_INCLUDE_INSECURE),ccm,) \
 	chapoly \
 	cmac \
 	constraints \
@@ -43,7 +44,7 @@ PKG_MOD_AVAILABLE:= \
 	eap-dynamic \
 	eap-identity \
 	eap-md5 \
-	eap-mschapv2 \
+	$(if $(CONFIG_STRONGSWAN_INCLUDE_INSECURE),eap-mschapv2,) \
 	eap-radius \
 	eap-tls \
 	farp \
@@ -62,7 +63,7 @@ PKG_MOD_AVAILABLE:= \
 	led \
 	load-tester \
 	lookip \
-	md4 \
+	$(if $(CONFIG_STRONGSWAN_INCLUDE_INSECURE),md4,) \
 	md5 \
 	mgf1 \
 	mysql \
@@ -103,11 +104,13 @@ PKG_MOD_AVAILABLE:= \
 PKG_CONFIG_DEPENDS:= \
 	CONFIG_STRONGSWAN_ROUTING_TABLE \
 	CONFIG_STRONGSWAN_ROUTING_TABLE_PRIO \
-	$(patsubst %,CONFIG_PACKAGE_strongswan-mod-%,$(PKG_MOD_AVAILABLE)) \
+	CONFIG_STRONGSWAN_INCLUDE_INSECURE \
+	$(patsubst %,CONFIG_PACKAGE_strongswan-mod-%,$(PKG_MOD_AVAILABLE))
 
 PKG_FIXUP:=autoreconf
 PKG_INSTALL:=1
 PKG_BUILD_PARALLEL:=1
+PKG_BUILD_DEPENDS:=python3/host
 
 include $(INCLUDE_DIR)/package.mk
 # strongswan-mod-mysql needs iconv
@@ -118,7 +121,7 @@ define Package/strongswan/Default
   SECTION:=net
   CATEGORY:=Network
   TITLE:=StrongSwan
-  URL:=http://www.strongswan.org/
+  URL:=https://strongswan.org/
 endef
 
 define Package/strongswan/description/Default
@@ -129,16 +132,6 @@ define Package/strongswan
 $(call Package/strongswan/Default)
   MENU:=1
   DEPENDS:= +libpthread +ip \
-	+kmod-crypto-aead \
-	+kmod-crypto-authenc \
-	+kmod-crypto-cbc \
-	+kmod-lib-zlib-inflate \
-	+kmod-lib-zlib-deflate \
-	+kmod-crypto-des \
-	+kmod-crypto-echainiv \
-	+kmod-crypto-hmac \
-	+kmod-crypto-md5 \
-	+kmod-crypto-sha1 \
 	+kmod-ipsec +kmod-ipsec4 +IPV6:kmod-ipsec6
 endef
 
@@ -160,12 +153,11 @@ $(call Package/strongswan/Default)
 	+strongswan-ipsec \
 	+strongswan-mod-addrblock \
 	+strongswan-mod-aes \
-	+strongswan-mod-af-alg \
 	+strongswan-mod-agent \
 	+strongswan-mod-attr \
 	+strongswan-mod-attr-sql \
 	+strongswan-mod-blowfish \
-	+strongswan-mod-ccm \
+	+STRONGSWAN_INCLUDE_INSECURE:strongswan-mod-ccm \
 	+strongswan-mod-chapoly \
 	+strongswan-mod-cmac \
 	+strongswan-mod-constraints \
@@ -182,7 +174,7 @@ $(call Package/strongswan/Default)
 	+strongswan-mod-eap-dynamic \
 	+strongswan-mod-eap-identity \
 	+strongswan-mod-eap-md5 \
-	+strongswan-mod-eap-mschapv2 \
+	+STRONGSWAN_INCLUDE_INSECURE:strongswan-mod-eap-mschapv2 \
 	+strongswan-mod-eap-radius \
 	+strongswan-mod-eap-tls \
 	+strongswan-mod-farp \
@@ -199,7 +191,7 @@ $(call Package/strongswan/Default)
 	+strongswan-mod-led \
 	+strongswan-mod-load-tester \
 	+strongswan-mod-lookip \
-	+strongswan-mod-md4 \
+	+STRONGSWAN_INCLUDE_INSECURE:strongswan-mod-md4 \
 	+strongswan-mod-md5 \
 	+strongswan-mod-mgf1 \
 	+strongswan-mod-mysql \
@@ -458,6 +450,7 @@ CONFIGURE_ARGS+= \
 	--enable-mgf1 \
 	--enable-mediation \
 	--with-systemdsystemunitdir=no \
+	PYTHON="python3" \
 	$(if $(CONFIG_PACKAGE_strongswan-charon-cmd),--enable-cmd,--disable-cmd) \
 	$(if $(CONFIG_PACKAGE_strongswan-mod-gmpdh),--enable-gmpdh,) \
 	$(if $(CONFIG_PACKAGE_strongswan-pki),--enable-pki,--disable-pki) \
@@ -465,7 +458,7 @@ CONFIGURE_ARGS+= \
 	--with-urandom-device=/dev/urandom \
 	--with-routing-table="$(call qstrip,$(CONFIG_STRONGSWAN_ROUTING_TABLE))" \
 	--with-routing-table-prio="$(call qstrip,$(CONFIG_STRONGSWAN_ROUTING_TABLE_PRIO))" \
-	$(foreach m,$(PKG_MOD_AVAILABLE), \
+	$(foreach m,$(PKG_MOD_AVAILABLE) ccm eap-mschapv2 md4, \
 	  $(if $(CONFIG_PACKAGE_strongswan-mod-$(m)),--enable-$(m),--disable-$(m)) \
 	) \
 	ac_cv_search___atomic_load=no
@@ -573,6 +566,11 @@ define Package/strongswan-swanctl/install
 	$(INSTALL_BIN) ./files/swanctl.init $(1)/etc/init.d/swanctl
 	$(INSTALL_DIR) $(1)/etc/config
 	$(INSTALL_CONF) ./files/ipsec.config $(1)/etc/config/ipsec
+
+	# Install migration from 'ipsec@ipsec[-1]' to 'ipsec.globals'
+	$(INSTALL_DIR) $(1)/etc/uci-defaults
+	$(INSTALL_DATA) ./files/etc/uci-defaults/strongswan \
+		$(1)/etc/uci-defaults/strongswan
 endef
 
 define Package/strongswan-gencerts/install
@@ -650,7 +648,6 @@ $(eval $(call BuildPackage,strongswan-gencerts))
 $(eval $(call BuildPackage,strongswan-libtls))
 $(eval $(call BuildPlugin,addrblock,RFC 3779 address block constraint support,))
 $(eval $(call BuildPlugin,aes,AES crypto,))
-$(eval $(call BuildPlugin,af-alg,AF_ALG crypto interface to Linux Crypto API,+kmod-crypto-user))
 $(eval $(call BuildPlugin,agent,SSH agent signing,))
 $(eval $(call BuildPlugin,attr,file based config,))
 $(eval $(call BuildPlugin,attr-sql,SQL based config,+strongswan-charon))

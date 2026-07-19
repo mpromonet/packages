@@ -8,19 +8,30 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=python-charset-normalizer
-PKG_VERSION:=3.3.2
+PKG_VERSION:=3.4.7
 PKG_RELEASE:=1
 
 PYPI_NAME:=charset-normalizer
-PKG_HASH:=f30c3cb33b24454a82faecaf01b19c18562b1e89558fb6c56de4d9118a032fd5
+PYPI_SOURCE_NAME:=charset_normalizer
+PKG_HASH:=ae89db9e5f98a11a4bf50407d4363e7b09b31e55bc117b4f7d80aab97ba009e5
 
 PKG_LICENSE:=MIT
 PKG_LICENSE_FILES:=LICENSE
-PKG_MAINTAINER:=Jeffery To <jeffery.to@gmail.com>
+PKG_MAINTAINER:=Alexandru Ardelean <ardeleanalex@gmail.com>
+
+HOST_BUILD_DEPENDS:= \
+	python3/host \
+	python-build/host \
+	python-installer/host \
+	python-wheel/host \
+	python-setuptools/host
+PKG_BUILD_DEPENDS:=python-setuptools/host
 
 include ../pypi.mk
 include $(INCLUDE_DIR)/package.mk
+include $(INCLUDE_DIR)/host-build.mk
 include ../python3-package.mk
+include ../python3-host-build.mk
 
 define Package/python3-charset-normalizer
   SECTION:=lang
@@ -41,3 +52,4 @@ endef
 $(eval $(call Py3Package,python3-charset-normalizer))
 $(eval $(call BuildPackage,python3-charset-normalizer))
 $(eval $(call BuildPackage,python3-charset-normalizer-src))
+$(eval $(call HostBuild))

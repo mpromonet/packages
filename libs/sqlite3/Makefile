@@ -1,25 +1,22 @@
+# Copyright (C) 2006-2026 OpenWrt.org
 #
-# Copyright (C) 2006-2014 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
+# SPDX-License-Identifier: GPL-2.0-only
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=sqlite
-PKG_VERSION:=3.50.4
-PKG_SRC_VERSION:=3500400
+PKG_VERSION:=3.53.3
+PKG_SRC_VERSION:=3530300
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-autoconf-$(PKG_SRC_VERSION).tar.gz
-PKG_SOURCE_URL:=https://www.sqlite.org/2025/
-PKG_HASH:=a3db587a1b92ee5ddac2f66b3edb41b26f9c867275782d46c3a088977d6a5b18
+PKG_SOURCE_URL:=https://www.sqlite.org/2026/
+PKG_HASH:=c917d7db16648ec95f714974ace5e5dcf46b7dc70e26600a0a102a3141125db0
 
 PKG_CPE_ID:=cpe:/a:sqlite:sqlite
-PKG_LICENSE:=PUBLICDOMAIN
-PKG_LICENSE_FILES:=
-PKG_MAINTAINER:=
+PKG_LICENSE:=blessing
+PKG_LICENSE_FILES:=LICENSE.md
+PKG_MAINTAINER:=Alexandru Ardelean <ardeleanalex@gmail.com>
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-autoconf-$(PKG_SRC_VERSION)
 PKG_BUILD_PARALLEL:=1
@@ -34,9 +31,12 @@ PKG_CONFIG_DEPENDS := \
 	CONFIG_SQLITE3_FTS4 \
 	CONFIG_SQLITE3_FTS5 \
 	CONFIG_SQLITE3_LIBEDIT \
+	CONFIG_SQLITE3_LINENOISE \
 	CONFIG_SQLITE3_READLINE \
 	CONFIG_SQLITE3_RTREE \
 	CONFIG_SQLITE3_SESSION
+
+PKG_BUILD_DEPENDS += SQLITE3_LINENOISE:linenoise
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -77,8 +77,7 @@ define Package/sqlite3-cli
   DEPENDS := \
     +libsqlite3 \
     +SQLITE3_LIBEDIT:libedit \
-    +SQLITE3_READLINE:libreadline \
-    +SQLITE3_READLINE:libncursesw
+    +SQLITE3_READLINE:libreadline
   EXTRA_DEPENDS:=libsqlite3 (=$(PKG_VERSION)-r$(PKG_RELEASE))
   TITLE+= (cli)
 endef
@@ -99,7 +98,9 @@ TARGET_CFLAGS += \
 	-DHAVE_MALLOC_USABLE_SIZE \
 	-DSQLITE_ENABLE_UNLOCK_NOTIFY \
 	$(if $(CONFIG_SQLITE3_BATCH_ATOMIC_WRITE),-DSQLITE_ENABLE_BATCH_ATOMIC_WRITE) \
-	$(if $(CONFIG_SQLITE3_COLUMN_METADATA),-DSQLITE_ENABLE_COLUMN_METADATA)
+	$(if $(CONFIG_SQLITE3_COLUMN_METADATA),-DSQLITE_ENABLE_COLUMN_METADATA) \
+	-DHAVE_EDITLINE=$(if $(CONFIG_SQLITE3_LIBEDIT),1,0) \
+	-DHAVE_READLINE=$(if $(CONFIG_SQLITE3_READLINE),1,0)
 
 CONFIGURE_ARGS := \
 	$(filter-out --target=% $(DISABLE_IPV6) $(DISABLE_NLS),$(CONFIGURE_ARGS)) \
@@ -117,9 +118,11 @@ CONFIGURE_ARGS := \
 	$(if $(CONFIG_SQLITE3_SESSION),--enable-session,--disable-session)
 
 ifeq ($(CONFIG_SQLITE3_LIBEDIT),y)
-CONFIGURE_ARGS+=--disable-readline
+CONFIGURE_ARGS+=--editline --with-readline-header=$(STAGING_DIR)/usr/include/editline/readline.h
 else ifeq ($(CONFIG_SQLITE3_READLINE),y)
-CONFIGURE_ARGS+=--disable-editline
+CONFIGURE_ARGS+=--readline --with-readline-header=$(STAGING_DIR)/usr/include/readline/readline.h
+else ifeq ($(CONFIG_SQLITE3_LINENOISE),y)
+CONFIGURE_ARGS+=--with-linenoise=$(STAGING_DIR)/usr/include/linenoise
 else
 CONFIGURE_ARGS+=--disable-editline --disable-readline
 endif
@@ -134,7 +137,7 @@ endef
 
 define Package/libsqlite3/install
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libsqlite3.so* $(1)/usr/lib
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libsqlite3.so.{$(PKG_VERSION),$(ABI_VERSION)} $(1)/usr/lib
 endef
 
 define Package/sqlite3-cli/install

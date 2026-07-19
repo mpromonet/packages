@@ -7,12 +7,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=cligen
-PKG_VERSION:=7.5.0
+PKG_VERSION:=7.8.0
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/clicon/$(PKG_NAME)/tar.gz/$(PKG_VERSION)?
-PKG_HASH:=e9baf98e41f53fd8b03b4bff622c25c9c86fc1fc3f99c4fb7b63eb8a4265dbd1
+PKG_HASH:=ca4be82ccbb06159bcff80b2e3222ee57271f40e6ed51a0c00f92f1fbf6daad0
 
 PKG_MAINTAINER:=Olof Hagsand <olof@hagsand.se>, Philip Prindeville <philipp@redfish-solutions.com>
 PKG_LICENSE:=Apache-2.0

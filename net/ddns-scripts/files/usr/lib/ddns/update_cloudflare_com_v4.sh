@@ -6,13 +6,19 @@
 #.based on Ben Kulbertis cloudflare-update-record.sh found at http://gist.github.com/benkulbertis
 #.and on George Johnson's cf-ddns.sh found at https://github.com/gstuartj/cf-ddns.sh
 #.2016-2018 Christian Schoenebeck <christian dot schoenebeck at gmail dot com>
-# CloudFlare API documentation at https://api.cloudflare.com/
+#
+# 2026 Wayne King
+# Added GET_REGISTERED_IP mode to retrieve the actual backend IP from Cloudflare API
+# (DNS lookups return Cloudflare's proxy IP, not the actual registered IP)
+# CloudFlare API documentation, section DNS at https://developers.cloudflare.com/api/resources/dns/
 #
 # This script is parsed by dynamic_dns_functions.sh inside send_update() function
 #
 # using following options from /etc/config/ddns
-# option username  - your cloudflare e-mail
-# option password  - cloudflare api key, you can get it from cloudflare.com/my-account/
+# option username  - "Bearer" or your Cloudflare e-mail, depending on the type of credentials used
+#                    for API Token, use "Bearer"; otherwise, with Global API Key, use your Cloudflare e-mail
+# option password  - Your API Token or your Global API Key, you can create/get either at
+#                    https://dash.cloudflare.com/profile/api-tokens
 # option domain    - "hostname@yourdomain.TLD"
 # option param_opt - (Optional) key=value pairs that are separated by space
 #                    if duplicate keys found, only the last occurrence will be used
@@ -210,6 +216,22 @@ else
 		write_log 4 "Could not detect 'record id' for host.domain.tld: '$__HOST'"
 		return 127
 	}
+fi
+
+# Check if we are being called for GET_REGISTERED_IP mode
+# This is set by get_registered_ip() in dynamic_dns_functions.sh
+if [ -n "$GET_REGISTERED_IP" ]; then
+	__RUNPROG="$__PRGBASE --request GET '$__URLBASE/zones/$__ZONEID/dns_records/$__RECID'"
+	cloudflare_transfer || return 1
+	__DATA=$(jsonfilter -i "$DATFILE" -e "@.result.content" 2>/dev/null)
+	if [ -n "$__DATA" ]; then
+		write_log 7 "Registered IP '$__DATA' detected via Cloudflare API"
+		REGISTERED_IP="$__DATA"
+		return 0
+	else
+		write_log 4 "Could not extract IP from Cloudflare API response"
+		return 127
+	fi
 fi
 
 # If dns_record_id is specified, grab the stored IP for that specific record

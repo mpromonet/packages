@@ -9,7 +9,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=bind
-PKG_VERSION:=9.20.11
+PKG_VERSION:=9.20.23
 PKG_RELEASE:=1
 USERID:=bind=57:bind=57
 
@@ -22,10 +22,7 @@ PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz
 PKG_SOURCE_URL:= \
 	https://www.mirrorservice.org/sites/ftp.isc.org/isc/bind9/$(PKG_VERSION) \
 	https://ftp.isc.org/isc/bind9/$(PKG_VERSION)
-PKG_HASH:=4da2d532e668bc21e883f6e6d9d3d81794d9ec60b181530385649a56f46ee17a
-
-PKG_FIXUP:=autoreconf
-PKG_REMOVE_FILES:=aclocal.m4 libtool.m4
+PKG_HASH:=5d4475aed3f9e500ef554b2b14d972bdb83d33de214a9b3be92918ea46908371
 
 PKG_INSTALL:=1
 PKG_BUILD_FLAGS:=no-mips16
@@ -52,6 +49,7 @@ define Package/bind/Default
   SECTION:=net
   CATEGORY:=Network
   DEPENDS:=+bind-libs +@OPENSSL_WITH_EC
+  EXTRA_DEPENDS:=bind-libs (=$(PKG_VERSION)-r$(PKG_RELEASE))
   TITLE:=bind
   URL:=https://www.isc.org/software/bind
   SUBMENU:=IP Addresses and Names
@@ -79,7 +77,9 @@ endef
 define Package/bind-server
   $(call Package/bind/Default)
   TITLE+= DNS server
-  DEPENDS+= +libcap
+  DEPENDS+= +libcap \
+	+bind-rndc
+  EXTRA_DEPENDS+=, bind-rndc (=$(PKG_VERSION)-r$(PKG_RELEASE))
 endef
 
 define Package/bind-server/config
@@ -89,6 +89,7 @@ endef
 define Package/bind-server-filter-aaaa
   $(call Package/bind-server)
   DEPENDS:=bind-server
+  EXTRA_DEPENDS:=bind-server (=$(PKG_VERSION)-r$(PKG_RELEASE))
   TITLE+= filter AAAA plugin
 endef
 
@@ -100,7 +101,7 @@ endef
 define Package/bind-tools
   $(call Package/bind/Default)
   TITLE+= administration tools (all)
-	DEPENDS:= \
+  DEPENDS:= \
 	+bind-check \
 	+bind-dig \
 	+bind-nslookup \
@@ -108,6 +109,14 @@ define Package/bind-tools
 	+bind-host \
 	+bind-rndc \
 	+bind-ddns-confgen
+  EXTRA_DEPENDS:= \
+	bind-check (=$(PKG_VERSION)-r$(PKG_RELEASE)), \
+	bind-dig (=$(PKG_VERSION)-r$(PKG_RELEASE)), \
+	bind-nslookup (=$(PKG_VERSION)-r$(PKG_RELEASE)), \
+	bind-dnssec (=$(PKG_VERSION)-r$(PKG_RELEASE)), \
+	bind-host (=$(PKG_VERSION)-r$(PKG_RELEASE)), \
+	bind-rndc (=$(PKG_VERSION)-r$(PKG_RELEASE)), \
+	bind-ddns-confgen (=$(PKG_VERSION)-r$(PKG_RELEASE))
 endef
 
 define Package/bind-rndc
@@ -147,9 +156,8 @@ define Package/bind-ddns-confgen
   TITLE+= administration tools (ddns-confgen and tsig-keygen only)
 endef
 
-export BUILD_CC="$(TARGET_CC)"
-
-TARGET_LDFLAGS += -Wl,--gc-sections,--as-needed
+TARGET_LDFLAGS += -Wl,--gc-sections,--as-needed \
+	-Wl,-rpath-link,$(PKG_BUILD_DIR)/lib/ns/.libs
 
 CONFIGURE_ARGS += \
 	--disable-geoip \
@@ -199,19 +207,6 @@ else
 		--without-gssapi
 endif
 
-CONFIGURE_VARS += \
-	BUILD_CC="$(TARGET_CC)" \
-
-define Build/Compile
-	$(MAKE) -C $(PKG_BUILD_DIR)/lib/dns \
-		BUILD_CC="$(HOSTCC)" \
-		CC="$(HOSTCC)" \
-		CFLAGS="-O2" \
-		LIBS="" \
-		gen
-	$(call Build/Compile/Default)
-endef
-
 define Package/bind-libs/install
 	$(INSTALL_DIR) $(1)/usr/lib
 	$(CP) $(PKG_INSTALL_DIR)/usr/lib/*.so* $(1)/usr/lib
@@ -221,30 +216,14 @@ define Package/bind-server/install
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/sbin/named $(1)/usr/sbin/
 	$(INSTALL_DIR) $(1)/etc/bind
-	$(CP) \
-		./files/bind/db.0 \
-		./files/bind/db.127 \
-		./files/bind/db.255 \
-		./files/bind/db.local \
-		./files/bind/db.root \
-		./files/bind/bind.keys \
-		$(1)/etc/bind/
-	sed -e '1s/ broadcast / empty rfc1918 /' \
-		< ./files/bind/db.0 \
-		> $(1)/etc/bind/db.empty
-	$(CP) ./files/bind/named.conf.example $(1)/etc/bind/named.conf
+	$(INSTALL_DATA) ./files/bind/db.root $(1)/etc/bind
+	$(INSTALL_DATA) ./files/bind/named.conf $(1)/etc/bind
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/named.init $(1)/etc/init.d/named
-	find $(1)/etc/bind/ -name ".svn" | xargs rm -rf
 endef
 
 define Package/bind-server/conffiles
-/etc/bind/db.0
-/etc/bind/db.127
-/etc/bind/db.255
-/etc/bind/db.local
-/etc/bind/db.root
-/etc/bind/named.conf
+/etc/bind
 endef
 
 define Package/bind-server-filter-aaaa/install
